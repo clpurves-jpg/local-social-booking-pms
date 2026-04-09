@@ -1,0 +1,29 @@
+import Link from 'next/link';
+import { SectionCard } from '@/components/SectionCard';
+
+export default function CheckoutSuccessPage() {
+  return (
+    <main className="mx-auto max-w-5xl px-6 py-12">
+      <div className="rounded-2xl border bg-white p-8 shadow-sm">
+        <h1 className="text-3xl font-semibold text-slate-900">
+          Payment received
+        </h1>
+        <p className="mt-3 text-lg text-slate-700">
+          Your reservation is being finalized.
+        </p>
+        <p className="mt-4 text-slate-600">
+          A confirmation email will be sent shortly with your stay details.
+        </p>
+
+        <div className="mt-8">
+          <a
+            href="/book"
+            className="inline-flex rounded-xl bg-indigo-600 px-5 py-3 font-medium text-white hover:bg-indigo-700"
+          >
+            Book another stay
+          </a>
+        </div>
+      </div>
+    </main>
+  );
+}
