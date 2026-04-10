@@ -192,7 +192,7 @@ export default async function DeskBookingReceiptPage({
                   fontWeight: 700,
                 }}
               >
-                Rivers End Lodging
+                High Desert Lodge
               </h1>
               <p style={{ marginTop: '8px', marginBottom: 0, color: '#475569' }}>
                 Booking Receipt

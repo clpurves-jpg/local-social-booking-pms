@@ -37,7 +37,7 @@ export default async function DeskLayout({
           }}
         >
           <div>
-            <strong>Rivers End Lodging</strong>
+            <strong>High Desert Lodge</strong>
             <div style={{ fontSize: '14px', color: '#64748b' }}>
               Signed in as {profile.email} · {profile.role}
             </div>

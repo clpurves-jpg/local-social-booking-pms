@@ -48,7 +48,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               color: '#0f172a',
             }}
           >
-            Rivers End Admin
+            High Desert Lodge Admin
           </h1>
           <p style={{ marginTop: '8px', color: '#475569' }}>
             Sign in to access the admin and front desk dashboard.

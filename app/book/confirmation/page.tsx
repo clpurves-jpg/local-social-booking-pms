@@ -175,7 +175,7 @@ export default async function BookingConfirmationPage({
 
             <div>
               <h1 className="text-4xl font-semibold tracking-tight">
-                Thank you for booking with Rivers End Lodging
+                Thank you for booking with High Desert Lodge!
               </h1>
               <p
                 className="mt-3 text-base"

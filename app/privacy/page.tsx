@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Privacy Policy | Rivers End Lodging",
+  title: "Privacy Policy | High Desert Lodge",
 };
 
 export default function PrivacyPage() {
@@ -8,7 +8,7 @@ export default function PrivacyPage() {
       <h1>Privacy Policy</h1>
 
       <p>
-        Rivers End Lodging respects your privacy. This Privacy Policy explains how we collect,
+        High Desert Lodge respects your privacy. This Privacy Policy explains how we collect,
         use, and protect information when you use our website or make a reservation.
       </p>
 
@@ -31,7 +31,7 @@ export default function PrivacyPage() {
       <h2>Payment Processing</h2>
 
       <p>
-        All payments are securely processed through <strong>Stripe</strong>. Rivers End Lodging
+        All payments are securely processed through <strong>Stripe</strong>. High Desert Lodge
         does not store credit card numbers on our systems.
       </p>
 
@@ -74,9 +74,9 @@ export default function PrivacyPage() {
         If you have questions about this Privacy Policy, please contact:
       </p>
 
-      <p>
-        Rivers End Lodging<br/>
-        Email: riversendstay@gmail.com
+   High Desert Lodge <p>
+        <br/>
+        Email: yourlocalsocialteam@gmail.com
       </p>
 
       <p style={{marginTop: "40px", fontSize: "14px", color: "#666"}}>

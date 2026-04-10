@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Terms of Service | Rivers End Lodging",
+  title: "Terms of Service | High Desert Lodge",
 };
 
 export default function TermsPage() {
@@ -8,7 +8,7 @@ export default function TermsPage() {
       <h1>Terms of Service</h1>
 
       <p>
-        These Terms of Service govern the use of the Rivers End Lodging website and booking
+        These Terms of Service govern the use of the High Desert Lodge Lodging website and booking
         system.
       </p>
 
@@ -21,7 +21,7 @@ export default function TermsPage() {
       <h2>Payments</h2>
 
       <p>
-        Payments are securely processed through Stripe. Rivers End Lodging does not store
+        Payments are securely processed through Stripe. High Desert Lodge does not store
         credit card information.
       </p>
 
@@ -47,8 +47,8 @@ export default function TermsPage() {
       <h2>Contact</h2>
 
       <p>
-        Rivers End Lodging<br/>
-        Email: riversendstay@gmail.com
+        High Desert Lodge<br/>
+        Email: yourlocalsocialteam@gmail.com
       </p>
 
       <p style={{marginTop: "40px", fontSize: "14px", color: "#666"}}>

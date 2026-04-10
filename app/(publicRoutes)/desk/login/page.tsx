@@ -58,7 +58,7 @@ export default async function DeskLoginPage() {
               color: '#64748b',
             }}
           >
-            Rivers End Lodging
+            High Desert Lodge
           </p>
 
           <h1

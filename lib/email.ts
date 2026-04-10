@@ -1,9 +1,9 @@
 import { Resend } from 'resend';
 
-const FROM_EMAIL = 'Rivers End Lodging <stay@riversendstay.com>';
+const FROM_EMAIL = 'High Desert Lodge <yourlocalsocialteam@gmail.com>';
 
 const ADMIN_EMAILS = [
-  'riversendstay@gmail.com',
+  'yourlocalsocialteam@gmail.com',
   'clpurves@gmail.com',
 ];
 
@@ -61,11 +61,11 @@ export async function sendGuestReceipt({
       from: FROM_EMAIL,
       to: guestEmail,
       bcc: 'clpurves@gmail.com', // 👈 TEMP DEBUG (remove later)
-      subject: 'Your Reservation is Confirmed – Rivers End Lodging',
+      subject: 'Your Reservation is Confirmed – High Desert Lodge',
       html: `
         <h2>Reservation Confirmed</h2>
         <p>Hi ${name},</p>
-        <p>Thank you for your booking with Rivers End Lodging.</p>
+        <p>Thank you for your booking with High Desert Lodge.</p>
 
         <p><strong>Room:</strong> ${room}</p>
         <p><strong>Check-in:</strong> ${checkIn}</p>
@@ -102,7 +102,7 @@ export async function sendAdminNotification({
     const result = await resend.emails.send({
       from: FROM_EMAIL,
       to: ADMIN_EMAILS,
-      subject: 'New Booking – Rivers End Lodging',
+      subject: 'New Booking – High Desert Lodge',
       html: `
         <h2>New Booking Received</h2>
 

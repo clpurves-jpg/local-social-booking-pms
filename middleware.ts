@@ -11,7 +11,6 @@ function copyCookies(from: NextResponse, to: NextResponse) {
 export async function middleware(request: NextRequest) {
   const sessionResponse = await updateSession(request);
 
-  const hostname = request.nextUrl.hostname.toLowerCase();
   const { pathname, search } = request.nextUrl;
 
   // Skip internals, API, and files
@@ -26,32 +25,31 @@ export async function middleware(request: NextRequest) {
     return sessionResponse;
   }
 
-  // Allow /desk to stay /desk on any hostname
-  if (pathname === '/desk' || pathname.startsWith('/desk/')) {
+  // Let these route groups work normally
+  if (
+    pathname === '/' ||
+    pathname === '/login' ||
+    pathname.startsWith('/login/') ||
+    pathname === '/change-password' ||
+    pathname.startsWith('/change-password/') ||
+    pathname === '/book' ||
+    pathname.startsWith('/book/') ||
+    pathname === '/admin' ||
+    pathname.startsWith('/admin/') ||
+    pathname === '/desk' ||
+    pathname.startsWith('/desk/')
+  ) {
     return sessionResponse;
   }
 
-  // ADMIN DOMAIN -> /admin
-  if (hostname === 'admin.riversendstay.com') {
-    if (pathname === '/admin' || pathname.startsWith('/admin/')) {
-      return sessionResponse;
-    }
-
+  // Policy and legal pages should be shown under /book for this demo app
+  if (
+    pathname === '/terms' ||
+    pathname === '/privacy' ||
+    pathname === '/pet-policy'
+  ) {
     const url = request.nextUrl.clone();
-    url.pathname = pathname === '/' ? '/admin' : `/admin${pathname}`;
-    url.search = search;
-
-    return copyCookies(sessionResponse, NextResponse.rewrite(url));
-  }
-
-  // BOOK DOMAIN -> /book
-  if (hostname === 'book.riversendstay.com') {
-    if (pathname === '/book' || pathname.startsWith('/book/')) {
-      return sessionResponse;
-    }
-
-    const url = request.nextUrl.clone();
-    url.pathname = pathname === '/' ? '/book' : `/book${pathname}`;
+    url.pathname = `/book${pathname}`;
     url.search = search;
 
     return copyCookies(sessionResponse, NextResponse.rewrite(url));
