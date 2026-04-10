@@ -563,16 +563,16 @@ export function BookingForm({ rooms }: { rooms: InventoryUnit[] }) {
         style={{ marginTop: 4 }}
       />
 
-      <span className="small">
-        I agree to the{' '}
-        <a href="/terms" target="_blank">Terms</a>,{' '}
-        <a href="/privacy" target="_blank">Privacy Policy</a>, and{' '}
-        <a href="/pet-policy" target="_blank">Pet Policy</a>.
-        <br />
-        <strong>
-          Pets are $10 each. Guests are responsible for cleanup. Additional fees may apply for damages or excessive mess.
-        </strong>
-      </span>
+     <span className="small">
+  I agree to the{' '}
+  <a href="/book/terms" target="_blank">Terms</a>,{' '}
+  <a href="/book/privacy" target="_blank">Privacy Policy</a>, and{' '}
+  <a href="/book/pet-policy" target="_blank">Pet Policy</a>.
+  <br />
+  <strong>
+    Pets are $10 each. Guests are responsible for cleanup. Additional fees may apply for damages or excessive mess.
+  </strong>
+</span>
     </label>
   </div>
 
