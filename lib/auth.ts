@@ -7,6 +7,7 @@ export type UserProfile = {
   id: string;
   email: string;
   role: AppRole;
+  must_change_password: boolean;
 };
 
 export async function getCurrentUserProfile(): Promise<UserProfile | null> {
@@ -23,7 +24,7 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
 
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('id, email, role')
+    .select('id, email, role, must_change_password')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -39,21 +40,22 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
     id: profile.id,
     email: profile.email,
     role: profile.role,
+    must_change_password: profile.must_change_password,
   };
 }
 
-const ADMIN_SITE_URL =
+const BASE_URL =
   process.env.ADMIN_SITE_URL ||
   process.env.NEXT_PUBLIC_APP_URL ||
   'http://localhost:3000';
 
 export function getRoleHome(role: string) {
   if (role === 'admin') {
-    return `${ADMIN_SITE_URL}/admin`;
+    return `${BASE_URL}/admin`;
   }
 
   if (role === 'desk') {
-    return `${ADMIN_SITE_URL}/desk`;
+    return `${BASE_URL}/desk`;
   }
 
   return '/login';
@@ -64,6 +66,11 @@ export async function requireRole(allowedRoles: AppRole[]) {
 
   if (!profile) {
     redirect('/unauthorized');
+  }
+
+  // 🔒 FORCE PASSWORD CHANGE (cannot bypass)
+  if (profile.must_change_password) {
+    redirect('/change-password');
   }
 
   if (!allowedRoles.includes(profile.role)) {
