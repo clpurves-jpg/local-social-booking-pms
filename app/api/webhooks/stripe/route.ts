@@ -22,23 +22,18 @@ function getSupabaseAdmin() {
 }
 
 function asNumber(value: number | string | null | undefined) {
-  if (typeof value === 'number') return value;
-
-  if (typeof value === 'string') {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-
-  return 0;
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
+// ✅ CLEANED — no Rivers End reference
 function isWalkInPlaceholderEmail(email: string | null | undefined) {
   if (!email) return false;
 
   const normalized = email.trim().toLowerCase();
 
   return (
-    normalized === 'walkin@riversendstay.com' ||
+    normalized === 'walkin@example.com' ||
     normalized.startsWith('walkin+') ||
     normalized.startsWith('walkin@')
   );
@@ -77,111 +72,81 @@ export async function POST(req: NextRequest) {
       const amountTotal = asNumber(session.amount_total) / 100;
 
       const paymentIntentId =
-  typeof session.payment_intent === 'string'
-    ? session.payment_intent
-    : null;
+        typeof session.payment_intent === 'string'
+          ? session.payment_intent
+          : null;
 
-const customerId =
-  typeof session.customer === 'string'
-    ? session.customer
-    : null;
+      const customerId =
+        typeof session.customer === 'string'
+          ? session.customer
+          : null;
 
-// ✅ NEW — get payment method
-let paymentMethodId: string | null = null;
+      // ✅ Get payment method
+      let paymentMethodId: string | null = null;
 
-if (paymentIntentId) {
-  try {
-    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      if (paymentIntentId) {
+        try {
+          const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+          paymentMethodId =
+            typeof paymentIntent.payment_method === 'string'
+              ? paymentIntent.payment_method
+              : null;
+        } catch (error) {
+          console.error('Failed to retrieve payment method:', error);
+        }
+      }
 
-    paymentMethodId =
-      typeof paymentIntent.payment_method === 'string'
-        ? paymentIntent.payment_method
-        : null;
-  } catch (error) {
-    console.error('Failed to retrieve payment method:', error);
-  }
-}
-
-      const { data: existingPayment, error: existingPaymentError } = await supabase
+      const { data: existingPayment } = await supabase
         .from('payments')
         .select('*')
         .eq('provider_checkout_session_id', checkoutSessionId)
         .maybeSingle();
 
-      if (existingPaymentError) {
-        console.error('Failed to load payment row:', existingPaymentError);
-        return NextResponse.json({ received: true });
-      }
-
       if (existingPayment) {
-        const { error: updatePaymentError } = await supabase
+        await supabase
           .from('payments')
-         .update({
-  provider_payment_intent_id: paymentIntentId,
-  stripe_customer_id: customerId,
-  stripe_payment_method_id: paymentMethodId, // ✅ ADD THIS
-  amount_captured: amountTotal,
-  status: 'paid',
-  paid_at: new Date().toISOString(),
-})
-          .eq('provider_checkout_session_id', checkoutSessionId);
-
-        if (updatePaymentError) {
-          console.error('Failed to update payment row:', updatePaymentError);
-          return NextResponse.json({ received: true });
-        }
-      } else {
-        const { error: insertPaymentError } = await supabase
-          .from('payments')
-          .insert({
-  booking_id: bookingId,
-  provider: 'stripe',
-  provider_payment_intent_id: paymentIntentId,
-  stripe_customer_id: customerId,
-  stripe_payment_method_id: paymentMethodId, // ✅ ADD THIS
-  provider_checkout_session_id: checkoutSessionId,
-            amount_authorized: amountTotal,
+          .update({
+            provider_payment_intent_id: paymentIntentId,
+            stripe_customer_id: customerId,
+            stripe_payment_method_id: paymentMethodId,
             amount_captured: amountTotal,
-            currency: (session.currency || 'usd').toLowerCase(),
             status: 'paid',
             paid_at: new Date().toISOString(),
-          });
-
-        if (insertPaymentError) {
-          console.error('Failed to insert payment row:', insertPaymentError);
-          return NextResponse.json({ received: true });
-        }
+          })
+          .eq('provider_checkout_session_id', checkoutSessionId);
+      } else {
+        await supabase.from('payments').insert({
+          booking_id: bookingId,
+          provider: 'stripe',
+          provider_payment_intent_id: paymentIntentId,
+          stripe_customer_id: customerId,
+          stripe_payment_method_id: paymentMethodId,
+          provider_checkout_session_id: checkoutSessionId,
+          amount_authorized: amountTotal,
+          amount_captured: amountTotal,
+          currency: (session.currency || 'usd').toLowerCase(),
+          status: 'paid',
+          paid_at: new Date().toISOString(),
+        });
       }
 
-      const { data: booking, error: bookingError } = await supabase
+      const { data: booking } = await supabase
         .from('bookings')
-        .select(`
-          *,
-          inventory_units (
-            id,
-            name,
-            room_type
-          )
-        `)
+        .select(`*, inventory_units (id, name, room_type)`)
         .eq('id', bookingId)
         .single();
 
-      if (bookingError || !booking) {
-        console.error('Failed to load booking:', bookingError);
+      if (!booking) {
+        console.error('Booking not found');
         return NextResponse.json({ received: true });
       }
 
       const gross = asNumber(booking.gross_amount);
 
-      const { data: payments, error: paymentsError } = await supabase
+      const { data: payments } = await supabase
         .from('payments')
         .select('*')
         .eq('booking_id', bookingId);
-
-      if (paymentsError) {
-        console.error('Failed to load payments for booking:', paymentsError);
-        return NextResponse.json({ received: true });
-      }
 
       const totalCaptured = (payments ?? []).reduce(
         (sum, p) => sum + asNumber(p.amount_captured),
@@ -189,7 +154,7 @@ if (paymentIntentId) {
       );
 
       if (totalCaptured >= gross) {
-        const { error: confirmError } = await supabase
+        await supabase
           .from('bookings')
           .update({
             status: 'confirmed',
@@ -201,16 +166,12 @@ if (paymentIntentId) {
           })
           .eq('id', bookingId);
 
-        if (confirmError) {
-          console.error('Failed to confirm booking:', confirmError);
-          return NextResponse.json({ received: true });
-        }
-
         const room = Array.isArray(booking.inventory_units)
           ? booking.inventory_units[0]
           : booking.inventory_units;
 
         const roomName = room?.name || 'Room';
+
         const guestName =
           [booking.guest_first_name, booking.guest_last_name]
             .filter(Boolean)
@@ -220,10 +181,7 @@ if (paymentIntentId) {
           booking.source !== 'walk_in' &&
           !isWalkInPlaceholderEmail(booking.guest_email);
 
-        console.log('Guest email from DB:', booking.guest_email);
-        console.log('Booking source:', booking.source);
-        console.log('Send guest email:', shouldSendGuestEmail);
-
+        // ✅ Guest email
         if (shouldSendGuestEmail) {
           try {
             await sendGuestReceipt({
@@ -234,14 +192,12 @@ if (paymentIntentId) {
               room: roomName,
               total: gross,
             });
-            console.log('Guest receipt sent');
-          } catch (guestEmailError) {
-            console.error('Guest receipt failed:', guestEmailError);
+          } catch (err) {
+            console.error('Guest email failed:', err);
           }
-        } else {
-          console.log('Skipped guest receipt for walk-in / placeholder email booking');
         }
 
+        // ✅ Admin email
         try {
           await sendAdminNotification({
             name: guestName,
@@ -251,9 +207,8 @@ if (paymentIntentId) {
             room: roomName,
             total: gross,
           });
-          console.log('Admin notification sent');
-        } catch (adminEmailError) {
-          console.error('Admin notification failed:', adminEmailError);
+        } catch (err) {
+          console.error('Admin email failed:', err);
         }
       }
     }
@@ -261,6 +216,7 @@ if (paymentIntentId) {
     return NextResponse.json({ received: true });
   } catch (error) {
     console.error('Webhook processing error:', error);
+
     return NextResponse.json(
       { error: 'Webhook processing failed' },
       { status: 500 }

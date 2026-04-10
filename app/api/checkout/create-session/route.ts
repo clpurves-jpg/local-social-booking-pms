@@ -24,8 +24,13 @@ function getBaseUrl() {
   return (
     process.env.BOOKING_SITE_URL ||
     process.env.NEXT_PUBLIC_APP_URL ||
-    'https://book.riversendstay.com'
+    'http://localhost:3000'
   );
+}
+
+function asNumber(value: unknown) {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function isExpiredHold(holdExpiresAt: string | null | undefined, now: Date) {
@@ -39,7 +44,9 @@ function isExpiredCheckoutHold(createdAt: string | null | undefined, now: Date) 
   return now.getTime() - created.getTime() > HOLD_WINDOW_MS;
 }
 
-async function cleanupExpiredHoldsAndBlocks(supabase: ReturnType<typeof getSupabaseAdmin>) {
+async function cleanupExpiredHoldsAndBlocks(
+  supabase: ReturnType<typeof getSupabaseAdmin>
+) {
   const now = new Date();
   const nowIso = now.toISOString();
 
@@ -165,7 +172,7 @@ export async function POST(request: NextRequest) {
       supabase
         .from('bookings')
         .select(
-          'id,inventory_id,check_in_date,check_out_date,status,hold_expires_at'
+          'id, inventory_id, check_in_date, check_out_date, status, hold_expires_at'
         )
         .eq('inventory_id', booking.inventory_id)
         .neq('id', booking.id)
@@ -173,7 +180,7 @@ export async function POST(request: NextRequest) {
 
       supabase
         .from('inventory_blocks')
-        .select('id,inventory_id,start_date,end_date,reason,created_at')
+        .select('id, inventory_id, start_date, end_date, reason, created_at')
         .eq('inventory_id', booking.inventory_id),
     ]);
 
@@ -225,14 +232,14 @@ export async function POST(request: NextRequest) {
       return !isExpiredCheckoutHold(block.created_at, now);
     });
 
-    const blockConflict = activeBlocks.some((block: any) => {
-      return overlaps(
+    const blockConflict = activeBlocks.some((block: any) =>
+      overlaps(
         booking.check_in_date,
         booking.check_out_date,
         block.start_date,
         block.end_date
-      );
-    });
+      )
+    );
 
     if (blockConflict) {
       return NextResponse.json(
@@ -266,7 +273,7 @@ export async function POST(request: NextRequest) {
 
     const { data: refreshedBooking, error: refreshedBookingError } = await supabase
       .from('bookings')
-      .select('id,status,hold_expires_at')
+      .select('id, status, hold_expires_at')
       .eq('id', booking.id)
       .single();
 
@@ -289,7 +296,7 @@ export async function POST(request: NextRequest) {
 
     const { data: existingOwnBlocks, error: existingOwnBlocksError } = await supabase
       .from('inventory_blocks')
-      .select('id,created_at')
+      .select('id, created_at')
       .eq('inventory_id', booking.inventory_id)
       .eq('reason', 'checkout_hold')
       .eq('start_date', booking.check_in_date)
@@ -311,17 +318,22 @@ export async function POST(request: NextRequest) {
 
     if (activeOwnBlocks.length > 0) {
       return NextResponse.json(
-        { error: 'A checkout session is already active for this room. Please wait a moment and try again.' },
+        {
+          error:
+            'A checkout session is already active for this room. Please wait a moment and try again.',
+        },
         { status: 409 }
       );
     }
 
-    const { error: blockInsertError } = await supabase.from('inventory_blocks').insert({
-      inventory_id: booking.inventory_id,
-      start_date: booking.check_in_date,
-      end_date: booking.check_out_date,
-      reason: 'checkout_hold',
-    });
+    const { error: blockInsertError } = await supabase
+      .from('inventory_blocks')
+      .insert({
+        inventory_id: booking.inventory_id,
+        start_date: booking.check_in_date,
+        end_date: booking.check_out_date,
+        reason: 'checkout_hold',
+      });
 
     if (blockInsertError) {
       return NextResponse.json(
@@ -340,20 +352,49 @@ export async function POST(request: NextRequest) {
 
     const roomName = room?.name || 'Room';
     const guestName =
-      [booking.guest_first_name, booking.guest_last_name].filter(Boolean).join(' ') ||
-      'Guest';
+      [booking.guest_first_name, booking.guest_last_name]
+        .filter(Boolean)
+        .join(' ') || 'Guest';
 
-    const amountCents = Math.round(Number(booking.gross_amount ?? 0) * 100);
-    const petCount = Number((booking as any).pet_count ?? 0);
-const petFee = Number((booking as any).pet_fee ?? 0);
-const lodgingSubtotal =
-  Number(booking.gross_amount ?? 0) - petFee;
+    const grossAmount = asNumber(booking.gross_amount);
+    const petCount = asNumber((booking as any).pet_count);
+    const petFee = asNumber((booking as any).pet_fee);
+    const lodgingSubtotal = grossAmount - petFee;
+    const amountCents = Math.round(grossAmount * 100);
 
     if (!amountCents || amountCents < 50) {
       return NextResponse.json(
         { error: 'Invalid booking total for checkout.' },
         { status: 400 }
       );
+    }
+
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = [
+      {
+        quantity: 1,
+        price_data: {
+          currency: 'usd',
+          unit_amount: Math.round(lodgingSubtotal * 100),
+          product_data: {
+            name: `${roomName} stay`,
+            description: `${booking.check_in_date} to ${booking.check_out_date} · ${booking.nights} night(s) · ${guestName}`,
+          },
+        },
+      },
+    ];
+
+    if (petFee > 0) {
+      lineItems.push({
+        quantity: 1,
+        price_data: {
+          currency: 'usd',
+          unit_amount: Math.round(petFee * 100),
+          product_data: {
+            name: 'Pet fee',
+            description: `${petCount} pet${petCount === 1 ? '' : 's'} ($10 each)`,
+          },
+        },
+      });
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -369,43 +410,15 @@ const lodgingSubtotal =
         source: booking.source ?? '',
       },
       payment_intent_data: {
-  setup_future_usage: 'off_session', // ✅ THIS IS THE FIX
-  metadata: {
-    booking_id: booking.id,
-    confirmation_code: booking.confirmation_code ?? '',
-    inventory_id: booking.inventory_id,
-    source: booking.source ?? '',
-  },
-},
-      line_items: [
-  {
-    quantity: 1,
-    price_data: {
-      currency: 'usd',
-      unit_amount: Math.round(lodgingSubtotal * 100),
-      product_data: {
-        name: `${roomName} stay`,
-        description: `${booking.check_in_date} to ${booking.check_out_date} · ${booking.nights} night(s) · ${guestName}`,
-      },
-    },
-  },
-
-  ...(petFee > 0
-    ? [
-        {
-          quantity: 1,
-          price_data: {
-            currency: 'usd',
-            unit_amount: Math.round(petFee * 100),
-            product_data: {
-              name: `Pet fee`,
-              description: `${petCount} pet${petCount === 1 ? '' : 's'} ($10 each)`,
-            },
-          },
+        setup_future_usage: 'off_session',
+        metadata: {
+          booking_id: booking.id,
+          confirmation_code: booking.confirmation_code ?? '',
+          inventory_id: booking.inventory_id,
+          source: booking.source ?? '',
         },
-      ]
-    : []),
-],
+      },
+      line_items: lineItems,
     });
 
     return NextResponse.json({

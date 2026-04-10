@@ -13,8 +13,7 @@ export async function updateSession(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookieOptions: {
-        name: 'riversend-auth',
-        domain: '.riversendstay.com',
+        name: 'localsocial-auth',
         path: '/',
         sameSite: 'lax',
         secure: true,
@@ -33,7 +32,6 @@ export async function updateSession(request: NextRequest) {
           for (const { name, value, options } of cookiesToSet) {
             response.cookies.set(name, value, {
               ...options,
-              domain: '.riversendstay.com',
               path: '/',
               sameSite: 'lax',
               secure: true,

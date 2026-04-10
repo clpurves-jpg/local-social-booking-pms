@@ -9,8 +9,7 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookieOptions: {
-        name: 'riversend-auth',
-        domain: '.riversendstay.com',
+        name: 'localsocial-auth',
         path: '/',
         sameSite: 'lax',
         secure: true,
@@ -24,7 +23,6 @@ export async function createClient() {
             for (const { name, value, options } of cookiesToSet) {
               cookieStore.set(name, value, {
                 ...options,
-                domain: '.riversendstay.com',
                 path: '/',
                 sameSite: 'lax',
                 secure: true,

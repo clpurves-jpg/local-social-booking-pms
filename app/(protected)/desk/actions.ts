@@ -114,7 +114,11 @@ async function loadCheckInBooking(bookingId: string) {
     booking: data as BookingCheckInRow,
   };
 }
-async function updateRoomStatus(unitId: string, status: 'clean' | 'dirty' | 'inspected') {
+
+async function updateRoomStatus(
+  unitId: string,
+  status: InventoryUnitStatus
+) {
   const supabase = getSupabaseAdmin();
 
   const { error } = await supabase
@@ -628,7 +632,7 @@ export async function createBookingPaymentLink(bookingId: string) {
   await requireRole(['desk', 'admin']);
 
   if (!stripe) {
-    redirect(`/desk/bookings/${bookingId}?error=Stripe not configured`);
+    goBookingDetailsWithError(bookingId, 'Stripe is not configured.');
   }
 
   const supabase = getSupabaseAdmin();
@@ -647,11 +651,11 @@ export async function createBookingPaymentLink(bookingId: string) {
     .single();
 
   if (error || !data) {
-    redirect(`/desk/bookings/${bookingId}?error=Failed to load booking`);
+    goBookingDetailsWithError(bookingId, 'Failed to load booking.');
   }
 
   if (data.payment_status === 'paid') {
-    redirect(`/desk/bookings/${bookingId}?error=Already paid`);
+    goBookingDetailsWithError(bookingId, 'Booking is already paid.');
   }
 
   const amount =
@@ -660,11 +664,13 @@ export async function createBookingPaymentLink(bookingId: string) {
       : Number(data.gross_amount ?? 0);
 
   if (!amount || amount <= 0) {
-    redirect(`/desk/bookings/${bookingId}?error=No amount to charge`);
+    goBookingDetailsWithError(bookingId, 'No amount available to charge.');
   }
 
   const bookingSiteUrl =
-    process.env.BOOKING_SITE_URL || 'https://book.riversendstay.com';
+    process.env.BOOKING_SITE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    'http://localhost:3000';
 
   const session = await stripe.checkout.sessions.create({
     mode: 'payment',
@@ -694,7 +700,7 @@ export async function createBookingPaymentLink(bookingId: string) {
     cancel_url: `${bookingSiteUrl}/book`,
   });
 
-  await supabase
+  const { error: updateError } = await supabase
     .from('bookings')
     .update({
       stripe_last_checkout_session_id: session.id,
@@ -703,16 +709,26 @@ export async function createBookingPaymentLink(bookingId: string) {
     })
     .eq('id', bookingId);
 
+  if (updateError) {
+    console.error('createBookingPaymentLink update error:', updateError);
+    goBookingDetailsWithError(
+      bookingId,
+      `Payment link created, but booking update failed: ${updateError.message}`
+    );
+  }
+
   revalidatePath(`/desk/bookings/${bookingId}`);
 
-  redirect(`/desk/bookings/${bookingId}?message=Payment link created`);
+  goBookingDetailsWithMessage(bookingId, 'Payment link created successfully.');
 }
 
 export async function updateRoomStatusAction(formData: FormData) {
   const supabase = await createClient();
 
   const inventoryId = String(formData.get('inventory_id') ?? '').trim();
-  const roomStatus = String(formData.get('room_status') ?? '').trim().toLowerCase();
+  const roomStatus = String(formData.get('room_status') ?? '')
+    .trim()
+    .toLowerCase() as InventoryUnitStatus;
 
   if (!inventoryId) {
     throw new Error('Missing inventory_id.');
@@ -745,7 +761,6 @@ export async function updateRoomStatusAction(formData: FormData) {
     throw new Error('Unauthorized.');
   }
 
-  // ⭐ THIS IS THE IMPORTANT FIX
   const adminSupabase = getSupabaseAdmin();
 
   const { error } = await adminSupabase

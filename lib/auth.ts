@@ -43,7 +43,9 @@ export async function getCurrentUserProfile(): Promise<UserProfile | null> {
 }
 
 const ADMIN_SITE_URL =
-  process.env.ADMIN_SITE_URL || 'https://admin.riversendstay.com';
+  process.env.ADMIN_SITE_URL ||
+  process.env.NEXT_PUBLIC_APP_URL ||
+  'http://localhost:3000';
 
 export function getRoleHome(role: string) {
   if (role === 'admin') {

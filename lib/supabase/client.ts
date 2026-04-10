@@ -7,8 +7,7 @@ export function createClient() {
     {
       isSingleton: true,
       cookieOptions: {
-        name: 'riversend-auth',
-        domain: '.riversendstay.com',
+        name: 'localsocial-auth',
         path: '/',
         sameSite: 'lax',
         secure: true,

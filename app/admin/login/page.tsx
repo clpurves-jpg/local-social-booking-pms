@@ -22,26 +22,32 @@ export default function AdminLoginPage() {
           textAlign: "center",
         }}
       >
-        <h1 style={{ margin: 0, color: "#0F3B5F" }}>Admin Login</h1>
+        <h1 style={{ margin: 0, color: "#0F3B5F" }}>
+          High Desert Lodge Admin
+        </h1>
 
         <p style={{ marginTop: "12px", color: "#64748b" }}>
-          Use the main login page to access the admin dashboard.
+          Staff login for reservations, front desk, and management tools.
         </p>
 
-        <div style={{ marginTop: "20px" }}>
+        <p style={{ marginTop: "8px", fontSize: "13px", color: "#94a3b8" }}>
+          Powered by Local Social Booking & PMS
+        </p>
+
+        <div style={{ marginTop: "24px" }}>
           <Link
-            href="https://book.riversendstay.com/login"
+            href="/login"
             style={{
               display: "inline-block",
               padding: "12px 20px",
               borderRadius: "999px",
-              background: "#0F3B5F",
+              background: "#6775b4",
               color: "#ffffff",
               textDecoration: "none",
               fontWeight: 700,
             }}
           >
-            Go to Login
+            Go to Staff Login
           </Link>
         </div>
       </div>
